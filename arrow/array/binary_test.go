@@ -762,3 +762,49 @@ func TestBinaryViewStringRoundTrip(t *testing.T) {
 
 	assert.True(t, Equal(arr, arr1))
 }
+
+// TestBinaryReset tests the Reset() method on the Binary, LargeBinary, and
+// BinaryView types, mirroring TestStringReset: the string arrays exposed
+// Reset but the binary arrays did not, so a decoder reusing an array across
+// batches allocated a new array each time.
+func TestBinaryReset(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+
+	bb1 := NewBinaryBuilder(mem, arrow.BinaryTypes.Binary)
+	bb2 := NewBinaryBuilder(mem, arrow.BinaryTypes.Binary)
+	defer bb1.Release()
+	defer bb2.Release()
+	bb1.Append([]byte("bytes1"))
+	bb1.AppendNull()
+	bin1 := bb1.NewBinaryArray()
+	bin2 := bb2.NewBinaryArray()
+	defer bin1.Release()
+	defer bin2.Release()
+	bin2.Reset(bin1.Data())
+	assert.Equal(t, []byte("bytes1"), bin2.Value(0))
+	assert.True(t, bin2.IsNull(1))
+
+	lb1 := NewBinaryBuilder(mem, arrow.BinaryTypes.LargeBinary)
+	lb2 := NewBinaryBuilder(mem, arrow.BinaryTypes.LargeBinary)
+	defer lb1.Release()
+	defer lb2.Release()
+	lb1.Append([]byte("large1"))
+	large1 := lb1.NewLargeBinaryArray()
+	large2 := lb2.NewLargeBinaryArray()
+	defer large1.Release()
+	defer large2.Release()
+	large2.Reset(large1.Data())
+	assert.Equal(t, []byte("large1"), large2.Value(0))
+
+	vb1 := NewBinaryViewBuilder(mem)
+	vb2 := NewBinaryViewBuilder(mem)
+	defer vb1.Release()
+	defer vb2.Release()
+	vb1.Append([]byte("view1"))
+	view1 := vb1.NewBinaryViewArray()
+	view2 := vb2.NewBinaryViewArray()
+	defer view1.Release()
+	defer view2.Release()
+	view2.Reset(view1.Data())
+	assert.Equal(t, []byte("view1"), view2.Value(0))
+}

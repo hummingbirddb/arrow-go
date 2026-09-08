@@ -52,6 +52,13 @@ func NewBinaryData(data arrow.ArrayData) *Binary {
 	return a
 }
 
+// Reset resets the array for reuse over new data, mirroring String.Reset:
+// the string arrays expose Reset but the binary arrays did not, so a caller
+// reusing a decoder across batches had to allocate a new array each time.
+func (a *Binary) Reset(data arrow.ArrayData) {
+	a.setData(data.(*Data))
+}
+
 // Value returns the slice at index i. This value should not be mutated.
 func (a *Binary) Value(i int) []byte {
 	if i < 0 || i >= a.data.length {
@@ -261,6 +268,11 @@ func NewLargeBinaryData(data arrow.ArrayData) *LargeBinary {
 	a.refCount.Add(1)
 	a.setData(data.(*Data))
 	return a
+}
+
+// Reset resets the array for reuse over new data, mirroring String.Reset.
+func (a *LargeBinary) Reset(data arrow.ArrayData) {
+	a.setData(data.(*Data))
 }
 
 func (a *LargeBinary) Value(i int) []byte {
@@ -577,6 +589,11 @@ func NewBinaryViewData(data arrow.ArrayData) *BinaryView {
 	a.refCount.Add(1)
 	a.setData(data.(*Data))
 	return a
+}
+
+// Reset resets the array for reuse over new data, mirroring String.Reset.
+func (a *BinaryView) Reset(data arrow.ArrayData) {
+	a.setData(data.(*Data))
 }
 
 func (a *BinaryView) setData(data *Data) {
